@@ -1,0 +1,11 @@
+{
+  "name": "ws-transaksi",
+  "version": "1.0.0",
+  "description": "Transaction Web Service for Tugas Besar 2 WBD using Node JS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "13516088",
+  "license": "ISC"
+}
