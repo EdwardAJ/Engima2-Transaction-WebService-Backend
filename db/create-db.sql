@@ -7,6 +7,6 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `screening_id` int NOT NULL,
   `showtime` timestamp NOT NULL,
   `seat_id` int NOT NULL,
-  `created_at` timestamp NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT now(),
   PRIMARY KEY (`id`)
 )
