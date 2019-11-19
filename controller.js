@@ -2,6 +2,8 @@
 
 var response = require('./res');
 var connection = require('./conn');
+var axios = require('axios');
+var DOMParser = require('dom-parser');
 
 var table = "transactions";
 // Requirement 1 - Add Pending Transaction
@@ -32,6 +34,39 @@ function normalizeUpdateTransaction(req) {
     }
 
     return null;
+}
+
+function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
+    var returnValue = true;
+    var bankTransactionEndpoint = "http://" + process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
+
+    var requestXML = `
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:con="http://controllers.webservice.com/">
+        <soapenv:Header/>
+        <soapenv:Body>
+        <con:checkCreditTransaction>
+            <!--Optional:-->
+            <accountNumber>` + virtualAccountNumber +`</accountNumber>
+            <!--Optional:-->
+            <startTime>` + startTime + `</startTime>
+            <!--Optional:-->
+            <endTime>`+ endTime + `</endTime>
+        </con:checkCreditTransaction>
+        </soapenv:Body>
+        </soapenv:Envelope>
+    `;
+
+    axios.post(bankTransactionEndpoint, requestXML, {headers: {'Content-Type': 'text/xml;charset=UTF-8'}}
+    ).then( (response) => {
+        if (response.status === 200) {
+            var xmlResponse = (new DOMParser()).parseFromString(response.data, 'text/xml').getElementsByTagName('return');
+            returnValue = xmlResponse[0].innerHTML === 'true';
+        }
+    }).catch( (error) => {
+        console.log("Error: ", error);
+    });
+    
+    return returnValue;
 }
 
 exports.updateTransaction = function(req, res) {
@@ -68,9 +103,8 @@ exports.updateTransaction = function(req, res) {
             return;
         }
 
-
         //Send request to WS Bank API.
-        var isPaid = false;
+        var isPaid = getTransactionFromBank();
         
         if (isPaid) {
             var queryText = "UPDATE " + table + " SET flag = b'1' WHERE id = " + transaction_id;
