@@ -4,6 +4,7 @@ var response = require('./res');
 var connection = require('./conn');
 var axios = require('axios');
 var DOMParser = require('dom-parser');
+var iso = require('to-iso-string');
 
 var table = "transactions";
 // Requirement 1 - Add Pending Transaction
@@ -28,7 +29,7 @@ exports.addPendingTransaction = function(req, res) {
     });
 };
 
-function normalizeUpdateTransaction(req) {
+function normalizeUpdateTransaction (req) {
     if (req.body.transaction_id == undefined) {
         return 'Transaction ID Required!';
     }
@@ -36,9 +37,19 @@ function normalizeUpdateTransaction(req) {
     return null;
 }
 
+function normalizeGetTransactions (req) {
+    if (req.body.user_id == undefined) {
+        return 'User ID Required!';
+    }
+    return null;
+}
+
 function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
-    var returnValue = true;
+    var returnValue = false;
     var bankTransactionEndpoint = process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
+
+    startTime = startTime.getFullYear() + '-' + (startTime.getMonth() + 1) + '-' + startTime.getDate() + ' ' + startTime.getHours() + ':' + startTime.getMinutes() + ':' + startTime.getSeconds();
+    endTime = endTime.getFullYear() + '-' + (endTime.getMonth() + 1) + '-' + endTime.getDate() + ' ' + endTime.getHours() + ':' + endTime.getMinutes() + ':' + endTime.getSeconds();
 
     var requestXML = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:con="http://controllers.webservice.com/">
@@ -69,6 +80,8 @@ function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
     return returnValue;
 }
 
+
+
 exports.updateTransaction = function(req, res) {
     var normalizeResult = normalizeUpdateTransaction(req);
 
@@ -85,7 +98,7 @@ exports.updateTransaction = function(req, res) {
     connection.query(getTransactionQuery, function (error, results, fields) {
         if (error) {
             console.log(error);
-            response.error({message: 'Internal error.'}, res);
+            response.internalError({message: 'Internal error.'}, res);
             return;
         } else {
             if (results.length > 0) {
@@ -112,7 +125,7 @@ exports.updateTransaction = function(req, res) {
             connection.query(queryText, function (error, results) {
                 if (error) {
                     console.log(error);
-                    response.error({message: 'Internal error.'}, res);
+                    response.internalError({message: 'Internal error.'}, res);
                 } else {
                     response.ok({message: 'Updated successfully.'}, res);
                 }
@@ -127,7 +140,7 @@ exports.updateTransaction = function(req, res) {
                 connection.query(queryText, function (error, results) {
                     if (error) {
                         console.log(error);
-                        response.error({message: 'Internal error.'}, res);
+                        response.internalError({message: 'Internal error.'}, res);
                     } else {
                         response.ok({message: 'Updated successfully.'}, res);
                     }
@@ -139,6 +152,96 @@ exports.updateTransaction = function(req, res) {
     });
 }
 
-exports.index = function(req, res) {
+function updateTrans(transaction_id) {
+    //Get the transaction.
+    var transaction = null;
+    var getTransactionQuery = "SELECT * FROM " + table + " WHERE id = " + transaction_id;
+    connection.query(getTransactionQuery, function (error, results, fields) {
+        if (error) {
+            console.log(error);
+            return {message: 'Internal error.'};
+        } else {
+            if (results.length > 0) {
+                transaction = results[0];
+                transaction.flag = transaction.flag[0] << 1 + transaction.flag[1];
+            } else {
+                return {message: 'Transaction not found!'};
+            }
+        }
+
+        //Check if update is needed.
+        if (transaction.flag != 0) {
+            return {message: 'No updates needed.'};
+        }
+
+        //Send request to WS Bank API.
+        var createTime = new Date(transaction.created_at);
+        var expireTime = new Date(transaction.created_at);
+        expireTime.setMinutes(createTime.getMinutes() + 2);
+        var isPaid = getTransactionFromBank(transaction.virtual_account_number, createTime, expireTime);
+        
+        if (isPaid) {
+            var queryText = "UPDATE " + table + " SET flag = b'1' WHERE id = " + transaction_id;
+            
+            connection.query(queryText, function (error, results) {
+                if (error) {
+                    console.log(error);
+                    return {message: 'Internal error.'};
+                } else {
+                    return {message: 'Updated successfully.'};
+                }
+            });
+        } else {
+            var expireDate = new Date(transaction.created_at + ' UTC');
+            expireDate.setMinutes(expireDate.getMinutes() + 2);
+            console.log(expireDate);
+            var isExpired = expireDate <= new Date();
+
+            if (isExpired) {
+                var queryText = "UPDATE " + table + " SET flag = b'10' WHERE id = " + transaction_id;
+            
+                connection.query(queryText, function (error, results) {
+                    if (error) {
+                        console.log(error);
+                        return {message: 'Internal error.'};
+                    } else {
+                        return {message: 'Updated successfully.'};
+                    }
+                });
+            } else {
+                return {message: 'No updates needed.'};
+            }
+        }
+    });
+}
+
+exports.index = function (req, res) {
     response.ok("Transaction Web Service - Build with Node JS" + process.env.ADDRESS, res)
 };
+
+exports.getAllTransactions = function (req, res) {
+    console.log("DIPANGGIL... ");
+    var normalizeResult = normalizeGetTransactions(req);
+    if (normalizeResult != null) {
+        response.internalError({message: normalizeResult}, res);
+        return;
+    }
+    var userID = req.body.user_id;
+    var getTransactionsQuery = "SELECT * FROM " + table + " WHERE user_id = " + userID;
+    connection.query(getTransactionsQuery, function (error, transactions, fields) {
+        if (error) {
+            console.log(error);
+            response.internalError({message: 'Internal error.'}, res);
+            return;
+        } else {
+            // Then return all of transactions
+            let responseArr = [];
+            // Update all transactions
+            for (var i = 0; i < transactions.length; i++) {
+                updateTrans(transactions[i].id);
+                responseArr.push(transactions[i]);
+            }
+            response.ok(responseArr, res);
+        }
+    });
+}

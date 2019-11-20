@@ -13,4 +13,7 @@ module.exports = function(app) {
     
     app.route('/updateTransaction')
         .post(todoList.updateTransaction);
+
+    app.route('/getAllTransactions')
+        .get(todoList.getAllTransactions);
 };
