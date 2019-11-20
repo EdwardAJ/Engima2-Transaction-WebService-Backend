@@ -4,7 +4,6 @@ var response = require('./res');
 var connection = require('./conn');
 var axios = require('axios');
 var DOMParser = require('dom-parser');
-var iso = require('to-iso-string');
 
 var table = "transactions";
 // Requirement 1 - Add Pending Transaction
@@ -79,7 +78,6 @@ function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
     
     return returnValue;
 }
-
 
 
 exports.updateTransaction = function(req, res) {
@@ -194,9 +192,7 @@ function updateTrans(transaction_id) {
         } else {
             var expireDate = new Date(transaction.created_at + ' UTC');
             expireDate.setMinutes(expireDate.getMinutes() + 2);
-            console.log(expireDate);
             var isExpired = expireDate <= new Date();
-
             if (isExpired) {
                 var queryText = "UPDATE " + table + " SET flag = b'10' WHERE id = " + transaction_id;
             
@@ -220,7 +216,6 @@ exports.index = function (req, res) {
 };
 
 exports.getAllTransactions = function (req, res) {
-    console.log("DIPANGGIL... ");
     var normalizeResult = normalizeGetTransactions(req);
     if (normalizeResult != null) {
         response.internalError({message: normalizeResult}, res);
