@@ -38,7 +38,7 @@ function normalizeUpdateTransaction(req) {
 
 function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
     var returnValue = true;
-    var bankTransactionEndpoint = "http://" + process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
+    var bankTransactionEndpoint = process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
 
     var requestXML = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:con="http://controllers.webservice.com/">
