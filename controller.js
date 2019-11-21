@@ -78,7 +78,6 @@ function getTransactionFromBank(transaction, startTime, endTime) {
         }
     }).catch( (error) => {
         console.log("Error: ", error);
-        isPaid = false;
     });
 }
 
