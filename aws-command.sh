@@ -1,7 +1,7 @@
 cd /home/ubuntu/ws-transaksi
 git stash
-git checkout feature-CICD
-git pull origin feature-CICD
+git checkout master
+git pull origin master
 echo 'Deleting database screen...'
 screen -X -S wstransaction-database quit
 echo 'Deleting node screen...'
