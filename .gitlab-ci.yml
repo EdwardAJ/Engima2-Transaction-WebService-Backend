@@ -10,8 +10,8 @@ linting_ganja:
     - eslint *.js
 
 deploy_to_aws:
-  # only:
-  #   - master
+  only:
+    - master
   stage: deploy
   tags:
     - tubes2wbd
