@@ -9,4 +9,5 @@ echo 'Creating .env'
 cp ENV.SAMPLE .env
 echo 'Entering screen...'
 screen -d -m -S wstransaction-database sudo docker-compose up
+echo 'Entering second screen...'
 screen -d -m -S wstransaction-node node index.js
