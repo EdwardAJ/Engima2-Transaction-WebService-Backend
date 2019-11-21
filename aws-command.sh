@@ -11,6 +11,8 @@ echo 'Creating .env'
 cp ENV.SAMPLE .env
 echo 'Entering database screen...'
 screen -d -m -S wstransaction-database sudo docker-compose up
+echo 'Wait...'
+sleep 5
 echo 'Entering node screen...'
 screen -d -m -S wstransaction-node node index.js
 echo 'Done'
