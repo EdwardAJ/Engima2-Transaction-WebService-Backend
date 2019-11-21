@@ -1,0 +1,22 @@
+stages:
+  - build
+  - deploy
+
+linting_ganja:
+  stage: build
+  tags:
+    - tubes2wbd
+  script:
+    - eslint *.js
+
+deploy_to_aws:
+  only:
+    - master
+  stage: deploy
+  tags:
+    - tubes2wbd
+  script:
+    - bash aws-command.sh
+  environment:
+    name: production
+    url: ec2-54-89-199-114.compute-1.amazonaws.com

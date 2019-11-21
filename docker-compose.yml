@@ -1,0 +1,14 @@
+version: "3.6"
+services:
+  wstransaction-database:
+    container_name: ${MYSQL_CONTAINER_NAME}
+    image: mysql:5.7.28
+    ports:
+      - ${MYSQL_HOST_PORT}:3306
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_PASSWORD=${MYSQL_PASS}
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+    volumes:
+      - ./config/mysql/my.cnf:/etc/mysql/my.cnf
