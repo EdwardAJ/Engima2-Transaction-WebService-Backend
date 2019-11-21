@@ -10,9 +10,6 @@ module.exports = function(app) {
 
     app.route('/addPendingTransaction')
         .post(todoList.addPendingTransaction);
-    
-    app.route('/updateTransaction')
-        .post(todoList.updateTransaction);
 
     app.route('/getAllTransactions')
         .get(todoList.getAllTransactions);
