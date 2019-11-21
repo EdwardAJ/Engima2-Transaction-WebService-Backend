@@ -43,7 +43,7 @@ function getXMLResponse (str) {
 }
 
 
-function getTransactionFromBank(transaction, startTime, endTime, isPaid) {
+function getTransactionFromBank(transaction, startTime, endTime) {
     var bankTransactionEndpoint = process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
     startTime = startTime.getFullYear() + '-' + (startTime.getMonth() + 1) + '-' + startTime.getDate() + ' ' + startTime.getHours() + ':' + startTime.getMinutes() + ':' + startTime.getSeconds();
     endTime = endTime.getFullYear() + '-' + (endTime.getMonth() + 1) + '-' + endTime.getDate() + ' ' + endTime.getHours() + ':' + endTime.getMinutes() + ':' + endTime.getSeconds();
