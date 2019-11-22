@@ -35,24 +35,31 @@ function normalizeGetTransactions (req) {
     return null;
 }
 
-function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
-    var returnValue = false;
-    var bankTransactionEndpoint = process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
+function getXMLResponse (str) {
+    let parser = new DOMParser();
+    let xmlResponse = parser.parseFromString(str, "text/xml");
+    let results = xmlResponse.getElementsByTagName("return");
+    return results;
+}
 
+
+function getTransactionFromBank(transaction, startTime, endTime) {
+    var bankTransactionEndpoint = process.env.WSBANK_API_URL + ":" + process.env.WSBANK_API_PORT + "/wsbank/check?wsdl"
     startTime = startTime.getFullYear() + '-' + (startTime.getMonth() + 1) + '-' + startTime.getDate() + ' ' + startTime.getHours() + ':' + startTime.getMinutes() + ':' + startTime.getSeconds();
     endTime = endTime.getFullYear() + '-' + (endTime.getMonth() + 1) + '-' + endTime.getDate() + ' ' + endTime.getHours() + ':' + endTime.getMinutes() + ':' + endTime.getSeconds();
-
+    
     var requestXML = `
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:con="http://controllers.webservice.com/">
         <soapenv:Header/>
         <soapenv:Body>
         <con:checkCreditTransaction>
             <!--Optional:-->
-            <accountNumber>` + virtualAccountNumber +`</accountNumber>
+            <accountNumber>` + transaction.virtual_account_number +`</accountNumber>
             <!--Optional:-->
             <startTime>` + startTime + `</startTime>
             <!--Optional:-->
             <endTime>`+ endTime + `</endTime>
+            <amount>` + 45000 + `</amount>
         </con:checkCreditTransaction>
         </soapenv:Body>
         </soapenv:Envelope>
@@ -61,14 +68,49 @@ function getTransactionFromBank(virtualAccountNumber, startTime, endTime) {
     axios.post(bankTransactionEndpoint, requestXML, {headers: {'Content-Type': 'text/xml;charset=UTF-8'}}
     ).then( (response) => {
         if (response.status === 200) {
-            var xmlResponse = (new DOMParser()).parseFromString(response.data, 'text/xml').getElementsByTagName('return');
-            returnValue = xmlResponse[0].innerHTML === 'true';
+            var xmlResponse = getXMLResponse(response.data)[0].innerHTML;
+            var returnValue = xmlResponse === 'true' ? true : false;
+            if (returnValue) {
+                updateTransOnSuccess(transaction.id);
+            } else {
+                updateTransOnNotPaid(transaction);
+            }
         }
     }).catch( (error) => {
         console.log("Error: ", error);
     });
+}
+
+function updateTransOnSuccess(transaction_id) {
+    var queryText = "UPDATE " + table + " SET flag = b'1' WHERE id = " + transaction_id;
+    connection.query(queryText, function (error) {
+        if (error) {
+            console.log(error);
+            return {message: 'Internal error.'};
+        } else {
+            return {message: 'Updated successfully.'};
+        }
+    });
+}
+
+function updateTransOnNotPaid(transaction) {
+    var expireDate = new Date(transaction.created_at + ' UTC');
+    expireDate.setMinutes(expireDate.getMinutes() + 2);
+    var isExpired = expireDate <= new Date();
+    if (isExpired) {
+        var queryText = "UPDATE " + table + " SET flag = b'10' WHERE id = " + transaction.id;
     
-    return returnValue;
+        connection.query(queryText, function (error) {
+            if (error) {
+                console.log(error);
+                return {message: 'Internal error.'};
+            } else {
+                return {message: 'Updated successfully.'};
+            }
+        });
+    } else {
+        return {message: 'No updates needed.'};
+    }
 }
 
 function updateTrans(transaction_id) {
@@ -87,48 +129,15 @@ function updateTrans(transaction_id) {
                 return {message: 'Transaction not found!'};
             }
         }
-
         //Check if update is needed.
         if (transaction.flag != 0) {
             return {message: 'No updates needed.'};
         }
-
         //Send request to WS Bank API.
         var createTime = new Date(transaction.created_at);
         var expireTime = new Date(transaction.created_at);
         expireTime.setMinutes(createTime.getMinutes() + 2);
-        var isPaid = getTransactionFromBank(transaction.virtual_account_number, createTime, expireTime);
-        
-        if (isPaid) {
-            var queryText = "UPDATE " + table + " SET flag = b'1' WHERE id = " + transaction_id;
-            
-            connection.query(queryText, function (error) {
-                if (error) {
-                    console.log(error);
-                    return {message: 'Internal error.'};
-                } else {
-                    return {message: 'Updated successfully.'};
-                }
-            });
-        } else {
-            var expireDate = new Date(transaction.created_at + ' UTC');
-            expireDate.setMinutes(expireDate.getMinutes() + 2);
-            var isExpired = expireDate <= new Date();
-            if (isExpired) {
-                queryText = "UPDATE " + table + " SET flag = b'10' WHERE id = " + transaction_id;
-            
-                connection.query(queryText, function (error) {
-                    if (error) {
-                        console.log(error);
-                        return {message: 'Internal error.'};
-                    } else {
-                        return {message: 'Updated successfully.'};
-                    }
-                });
-            } else {
-                return {message: 'No updates needed.'};
-            }
-        }
+        getTransactionFromBank(transaction, createTime, expireTime);
     });
 }
 
