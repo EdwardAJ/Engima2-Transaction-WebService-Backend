@@ -1,5 +1,7 @@
 ## [IF 3110 Pengembangan Aplikasi Berbasis Web]
 
+### Deskripsi Web Service 
+
 WS-Transaksi menggunakan Node JS dengan npm sebagai package manager. Protokol yang digunakan adalah Representational State Transfer.
 Root file dari webservice ini adalah index.js
 
@@ -18,8 +20,16 @@ Terdapat 3 API yang disesuaikan dengan requirement Tugas Besar 2 kali ini yaitu 
     - Diupdate saat mengambil seluruh transaksi
 
 3.  Mengembalikan seluruh data transaksi pembelian film seorang pengguna Engima
-    - Address daru API : /getAllTransactions
+    - Address dari API : /getAllTransactions
 
+### Basis Data yang Digunakan
+Basis data untuk Web Service ini menggunakan MySQL, dengan bantuan suatu node module `mysql` untuk mempermudah koneksi
+
+Berikut adalah isi dari create_tables.sql
+
+CREATE TABLE IF NOT EXISTS `transactions` ( `id` int NOT NULL AUTO_INCREMENT, `user_id` int NOT NULL, `flag` bit(2) NOT NULL, `virtual_account_number` varchar(11) NOT NULL, `film_id` int NOT NULL, `screening_id` int NOT NULL, `showtime` timestamp NOT NULL, `seat_id` int NOT NULL, `created_at` timestamp NOT NULL DEFAULT now(), PRIMARY KEY (`id`));
+
+Terdapat satu tabel utama yaitu transactions. Atribut dari setiap tabel dapat dilihat di create_tables.sql
 
 ### Running Transaction Web Service using Node JS
 
