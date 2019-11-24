@@ -93,12 +93,21 @@ function updateTransOnSuccess(transaction_id) {
     });
 }
 
+function cancelSeat(showing_id, seat_id) {
+    var seatFormData = new FormData();
+    seatFormData.set('showing_id', showing_id);
+    seatFormData.set('seat_id', seat_id);
+    axios.post(process.env.ENGIMA_API_URL + ':' + process.env.ENGIMA_API_PORT + '/transactions/cancel_seat', {headers: {'Content-Type': 'multipart/form-data'}});
+}
+
 function updateTransOnNotPaid(transaction) {
     var expireDate = new Date(transaction.created_at + ' UTC');
     expireDate.setMinutes(expireDate.getMinutes() + 2);
     var isExpired = expireDate <= new Date();
     if (isExpired) {
         var queryText = "UPDATE " + table + " SET flag = b'10' WHERE id = " + transaction.id;
+
+        cancelSeat(transaction.screening_id, transaction.seat_id);
     
         connection.query(queryText, function (error) {
             if (error) {
