@@ -94,10 +94,11 @@ function updateTransOnSuccess(transaction_id) {
 }
 
 function cancelSeat(showing_id, seat_id) {
-    var seatFormData = new FormData();
-    seatFormData.set('showing_id', showing_id);
-    seatFormData.set('seat_id', seat_id);
-    axios.post(process.env.ENGIMA_API_URL + ':' + process.env.ENGIMA_API_PORT + '/transactions/cancel_seat', {headers: {'Content-Type': 'multipart/form-data'}});
+    var seatData = {
+        showing_id: showing_id,
+        seat_id: seat_id,
+    }
+    axios.post(process.env.ENGIMA_API_URL + ':' + process.env.ENGIMA_API_PORT + '/transactions/cancel_seat', seatData, {headers: {'Content-Type': 'multipart/form-data'}});
 }
 
 function updateTransOnNotPaid(transaction) {
